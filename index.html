@@ -8,18 +8,26 @@
     <!-- <link rel="icon" href="./favicon.ico" type="image/x-icon"> -->
     <script type="text/javascript" src="https://rawgit.com/patriciogonzalezvivo/glslCanvas/master/dist/GlslCanvas.js"></script>
     <style>
-      .glslCanvas {
-        width: 100vw;
-        height: 100vh;
-      }
       * {
         padding: 0;
         margin: 0;
       }
+      body {
+        overflow: hidden;
+        width: 100vw;
+        height: 100wh;
+        background: red;
+      }
     </style>
   </head>
   <body>
-    <canvas class="glslCanvas" data-fragment-url="./shader.glsl"></canvas>
+    <canvas class="glslCanvas" id="main" data-fragment-url="./shader.glsl"></canvas>
   </body>
+  <script>
+    /* the "correct" way to get canvas full screen */
+    c = document.getElementById("main");
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+  </script>
 </html>
 

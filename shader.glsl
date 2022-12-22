@@ -26,16 +26,38 @@ float sdTorus(in vec3 p, in vec2 t) {
     return length(vec2(length(p.xz) - t.x, p.y)) - t.y;
 }
 
-vec2 opUnion(vec2 d1, vec2 d2) {
-    return d1.x < d2.x ? d1 : d2;
+float smoothMax(float a, float b, float k) {
+    return log(exp(k*a) + exp(k*b))/k;
+}
+
+vec2 sdfMin(vec2 d1, vec2 d2) {
+    float d = -smoothMax(-d1.x, -d2.x, 16.);
+    float m = d / d2.x;
+    return vec2(d, m);
 }
 
 vec2 scene(in vec3 position) {
-    vec2 scene = opUnion(
-          vec2(sdPlane(position), 1.0),
-          vec2(sdSphere(position - vec3(0.0, 0.4, 0.0), 0.4), 12.0)
-    );
-    return scene;
+  /*
+  vec2 scene = sdfMin(
+        vec2(sdPlane(position), 0.1),
+        vec2(sdSphere(position - vec3(0.0, 0.4*sin(u_time)*sin(u_time), 0.0), 0.2), 1.)
+  );
+  */
+  vec2 scene;
+  for (float i = -3.; i < 2.; i+=1.) {
+    if (i == 0.)
+      scene = sdfMin(
+        vec2(sdPlane(position), 0.1),
+        vec2(sdSphere(position - vec3(0., 0.4*sin(u_time)*sin(u_time), 0.0), 0.2), 1.)
+      );
+    else {
+      scene = sdfMin(
+        scene,
+        vec2(sdSphere(position - vec3(0.8 * i, 0.4*sin(u_time)*sin(u_time), 0.0), 0.2), 1.)
+      );
+    }
+  }
+  return scene;
 }
 
 //------------------------------------------------------------------------------
@@ -175,6 +197,10 @@ vec3 OECF_sRGBFast(const vec3 linear) {
     return pow(linear, vec3(1.0 / 2.2));
 }
 
+vec3 blend_material(const float m, const vec3 mat_1, const vec3 mat_2) {
+    return mat_1 + (mat_2 - mat_1)*m;
+}
+
 //------------------------------------------------------------------------------
 // Rendering
 //------------------------------------------------------------------------------
@@ -209,17 +235,13 @@ vec3 render(in vec3 origin, in vec3 direction, out float distance) {
 
         float intensity = 2.0;
         float indirectIntensity = 0.64;
+		
+        float f = mod(floor(6.0 * position.z) + floor(6.0 * position.x), 2.0);
+    	vec3 floor_mat = vec3(0.597,0.706,0.720);
+        vec3 ball_mat = vec3(0.3, 0.0, 0.0);
+        baseColor = blend_material(material, floor_mat, ball_mat);
 
-        if (material < 4.0)  {
-            // Checkerboard floor
-            float f = mod(floor(6.0 * position.z) + floor(6.0 * position.x), 2.0);
-            baseColor = 0.4 + f * vec3(0.6);
-            roughness = 0.1;
-        } else if (material < 16.0) {
-            // Metallic objects
-            baseColor = vec3(0.3, 0.0, 0.0);
-            roughness = 0.2;
-        }
+		roughness = 0.2;
 
         float linearRoughness = roughness * roughness;
         vec3 diffuseColor = (1.0 - metallic) * baseColor.rgb;
@@ -310,3 +332,4 @@ void main() {
 
     gl_FragColor = vec4(color, 1.0);
 }
+
